@@ -1,7 +1,9 @@
-Upcoming
-========
-    * ``tests/benchmark.py`` was updated to avoid python2 syntax.
-    * The unpickler was updated to avoid creating temporary functions.
+v3.2.2
+======
+    * A bug with the incorrect (de)serialization of NoneType objects has been fixed.
+      (+507)
+    * ``tests/benchmark.py`` was updated to avoid Python 2 syntax. (+508)
+    * The unpickler was updated to avoid creating temporary functions. (+508)
 
 v3.2.1
 ======
