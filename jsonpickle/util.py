@@ -171,6 +171,10 @@ def is_dictionary(obj: Any) -> bool:
     True
 
     """
+    warnings.warn(
+        "This function will be removed in the next release of jsonpickle, 5.0.0! Please migrate now.",
+        DeprecationWarning,
+    )
     return type(obj) is dict
 
 # used only in tests, TODO remove by 5.0.0
@@ -190,6 +194,10 @@ def is_list(obj: Any) -> bool:
     >>> is_list([4])
     True
     """
+    warnings.warn(
+        "This function will be removed in the next release of jsonpickle, 5.0.0! Please migrate now.",
+        DeprecationWarning,
+    )
     return type(obj) is list
 
 # used only in tests and jsonpickleJS, TODO remove by 5.0.0
@@ -199,6 +207,10 @@ def is_set(obj: Any) -> bool:
     >>> is_set(set())
     True
     """
+    warnings.warn(
+        "This function will be removed in the next release of jsonpickle, 5.0.0! Please migrate now.",
+        DeprecationWarning,
+    )
     return type(obj) is set
 
 # not used anywhere, TODO remove by 5.0.0
@@ -208,11 +220,19 @@ def is_bytes(obj: Any) -> bool:
     >>> is_bytes(b'foo')
     True
     """
+    warnings.warn(
+        "This function will be removed in the next release of jsonpickle, 5.0.0! Please migrate now.",
+        DeprecationWarning,
+    )
     return type(obj) is bytes
 
 # not used anywhere, TODO remove by 5.0.0
 def is_unicode(obj: Any) -> bool:
     """DEPRECATED: Helper method to see if the object is a unicode string"""
+    warnings.warn(
+        "This function will be removed in the next release of jsonpickle, 5.0.0! Please migrate now.",
+        DeprecationWarning,
+    )
     return type(obj) is str
 
 # used only in tests and jsonpickleJS, TODO remove by 5.0.0
@@ -222,6 +242,10 @@ def is_tuple(obj: Any) -> bool:
     >>> is_tuple((1,))
     True
     """
+    warnings.warn(
+        "This function will be removed in the next release of jsonpickle, 5.0.0! Please migrate now.",
+        DeprecationWarning,
+    )
     return type(obj) is tuple
 
 
@@ -317,6 +341,10 @@ def is_module(obj: Any) -> bool:
     True
 
     """
+    warnings.warn(
+        "This function will be removed in the next release of jsonpickle, 5.0.0! Please migrate now.",
+        DeprecationWarning,
+    )
     return isinstance(obj, types.ModuleType)
 
 
@@ -383,13 +411,17 @@ def is_reducible(obj: Any) -> bool:
     # defaultdicts may contain functions which we cannot serialise
     if is_collections(obj) and not isinstance(obj, collections.defaultdict):
         return True
-    # We turn off the formatting in order to double the speed of the function.
-    # Condensing it into one line seems to save the parser a lot of time.
-    # fmt: off
-    # pylint: disable=line-too-long
-    if type(obj) in NON_REDUCIBLE_TYPES or obj is object or is_dictionary_subclass(obj) or isinstance(obj, types.ModuleType) or is_reducible_sequence_subclass(obj) or is_list_like(obj) or isinstance(getattr(obj, '__slots__', None), _ITERATOR_TYPE) or (is_type(obj) and obj.__module__ == 'datetime'):  # noqa: E501
+    if (
+        type(obj) in NON_REDUCIBLE_TYPES
+        or obj is object
+        or is_dictionary_subclass(obj)
+        or isinstance(obj, types.ModuleType)
+        or is_reducible_sequence_subclass(obj)
+        or is_list_like(obj)
+        or isinstance(getattr(obj, '__slots__', None), _ITERATOR_TYPE)
+        or (is_type(obj) and obj.__module__ == 'datetime')
+    ):
         return False
-    # fmt: on
     return True
 
 
@@ -593,7 +625,8 @@ def itemgetter(obj: Any, getter: Any=operator.itemgetter(0)) -> str:
 
 def items(obj: Any, exclude=()):
     """
-    TODO: Replace all calls to this with plain dict.items()
+    This can't be easily replaced by dict.items() because this has the exclude parameter.
+    Keep it for now.
     """
     for k, v in obj.items():
         if k in exclude:
