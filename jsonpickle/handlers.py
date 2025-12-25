@@ -162,8 +162,7 @@ class BaseHandler:
 class ArrayHandler(BaseHandler):
     """Flatten and restore array.array objects"""
 
-    # type: ignore[type-arg]
-    def flatten(self, obj: array.array, data: Dict[str, Any]) -> HandlerReturn:
+    def flatten(self, obj: array.array, data: Dict[str, Any]) -> HandlerReturn:  # type: ignore[type-arg]
         data['typecode'] = obj.typecode
         data['values'] = self.context.flatten(obj.tolist(), reset=False)
         return data
@@ -258,7 +257,7 @@ class CloneFactory:
 
     def __call__(self, clone: Callable[[Any], Any] = copy.copy) -> Any:
         """Create new instances by making copies of the provided exemplar"""
-        return clone(self.exemplar)  # type: ignore[arg-type]
+        return clone(self.exemplar)
 
     def __repr__(self) -> str:
         return f'<CloneFactory object at 0x{id(self):x} ({self.exemplar})>'

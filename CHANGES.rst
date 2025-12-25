@@ -16,6 +16,7 @@ v5.0.0
     * Add support for the ``types`` module in ``util.importable_name`` (#574) (+575)
     * Fix roundtrip for method objects (#576) (+577)
     * More test cases were added to cover reported use cases. (#503) (#573)
+    * Fix bug with ``numpy`` ufuncs not being roundtripped properly. (#584) (+585)
 
 v4.1.1
 ======
