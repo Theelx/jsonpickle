@@ -21,6 +21,18 @@ v5.0.0
           jsonpickle.set_preferred_backend("simplejson")
 
       (+628)
+    * **Breaking Change**: The ``keys`` argument to ``encode()`` and ``decode()`` now
+      defaults to ``True``, so non-string dictionary keys are preserved rather than
+      coerced into strings. Pass ``keys=False`` for the old behavior. (+629)
+    * **Breaking Change**: Removed the ``numeric_keys`` argument for ``encode()``.
+      Use ``keys=True``, now the default, for non-string dictionary keys. (+629)
+    * **Breaking Change**: Removed the ``max_iter`` argument for ``encode()``. (+629)
+    * **Breaking Change**: Removed the ``v1_decode`` argument for ``decode()``.
+      Objects serialized by jsonpickle v1 are no longer directly readable; you need to
+      read and rewrite those in jsonpickle v4 first. (+629)
+    * **Breaking Change**: Removed the ``backend`` argument for ``encode()`` and
+      ``decode()``. Select a backend with ``jsonpickle.set_preferred_backend()``
+      instead. (+629)
     * Mypy-compatible typing has been added to the entire jsonpickle public API! (#561) (+563) (+603)
     * Fixed bug with pickling subclasses of Exception with keyword-only args. (#564) (+565)
     * Removed jsonpickleJS from the tree. (#568) (+569)
@@ -70,6 +82,9 @@ v5.0.0
     * The ability to run benchmarks over the entire pytest suite has been added
       in order to cover a wider portion of the codebase with the benchmarks. (+620)
     * `decimal.Decimal` tests were extended. (+625)
+    * Fixed a bug where decoding a dict with ``keys=True`` leaked an internal proxy
+      object for values under ordinary string keys, instead of resolving the
+      reference. This was previously only reachable under ``keys=True``. (+629)
 
 v4.1.2
 ======

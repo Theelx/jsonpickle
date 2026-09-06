@@ -19,12 +19,11 @@ jsonpickle API
 
 .. note::
 
-   For performance and compatibility reasons, jsonpickle does not preserve
-   non-string dictionary keys by default.  This results in a simpler, but
-   sometimes lossy, JSON representation.
+   jsonpickle preserves non-string dictionary keys such as integers, tuples,
+   and other non-string types by default.
 
-   Specify ``keys=True`` when encoding and decoding to preserve integers,
-   tuples, and other non-strings types as dictionary keys.
+   Specify ``keys=False`` when encoding and decoding for a simpler, but
+   lossy, JSON representation that coerces those keys into strings.
 
 .. autofunction:: jsonpickle.encode
 

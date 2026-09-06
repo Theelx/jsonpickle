@@ -283,15 +283,6 @@ def test_datetime_structure():
     assert obj == inflated
 
 
-def test_datetime_inside_int_keys_defaults():
-    t = datetime.time(hour=10)
-    s = jsonpickle.encode({1: t, 2: t})
-    d = jsonpickle.decode(s)
-    assert d["1"] == d["2"]
-    assert d["1"] is d["2"]
-    assert isinstance(d["1"], datetime.time)
-
-
 def test_datetime_inside_int_keys_with_keys_enabled():
     t = datetime.time(hour=10)
     s = jsonpickle.encode({1: t, 2: t}, keys=True)
@@ -309,15 +300,6 @@ def test_datetime_repr_not_unpicklable():
     assert tags.MODULE not in flattened
     assert tags.OBJECT not in flattened
     assert obj.isoformat() == flattened
-
-
-def test_datetime_dict_keys_defaults():
-    """Test that we handle datetime objects as keys."""
-    datetime_dict = {datetime.datetime(2008, 12, 31): True}  # ruff: ignore[DTZ001]
-    pickled = jsonpickle.encode(datetime_dict)
-    expect = {"datetime.datetime(2008, 12, 31, 0, 0)": True}
-    actual = jsonpickle.decode(pickled)
-    assert expect == actual
 
 
 def test_datetime_dict_keys_with_keys_enabled():

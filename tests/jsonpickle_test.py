@@ -428,8 +428,8 @@ def test_restore_id_with_invalid_data(value, unpickler):
 def test_dict(pickler, unpickler):
     """Our custom keys are preserved when user dicts contain them"""
     dict_a = {"key1": 1.0, "key2": 20, "key3": "thirty", tags.JSON_KEY + "6": 6}
-    assert pickler.flatten(dict_a) == dict_a
-    assert unpickler.restore(dict_a) == dict_a
+    # the json:// key is escaped so it cannot collide with a pickled key
+    assert unpickler.restore(pickler.flatten(dict_a)) == dict_a
     dict_b = {}
     assert pickler.flatten(dict_b) == dict_b
     assert unpickler.restore(dict_b) == dict_b
@@ -692,9 +692,8 @@ def test_references(pickler, unpickler):
 def test_references_in_number_keyed_dict(pickler, unpickler):
     """Dicts with numbers as keys and objects as values can roundtrip
 
-    Because JSON must coerce integers to strings in dict keys, the sort
-    order may have a tendency to change between pickling and unpickling,
-    and this could affect the object references.
+    The sort order may have a tendency to change between pickling and
+    unpickling, and this could affect the object references.
     """
     one = Thing("one")
     two = Thing("two")
@@ -709,7 +708,7 @@ def test_references_in_number_keyed_dict(pickler, unpickler):
     flattened = pickler.flatten(obj)
     inflated = unpickler.restore(flattened)
     assert len(inflated) == 3
-    assert inflated["12"].name == "twelve"
+    assert inflated[12].name == "twelve"
 
 
 def test_builtin_error():
@@ -922,19 +921,6 @@ def test_unicode_dict_keys():
     assert actual[uni] == uni
 
 
-def test_tuple_dict_keys_default():
-    """Test that we handle dictionaries with tuples as keys."""
-    tuple_dict = {(1, 2): 3, (4, 5): {(7, 8): 9}}
-    pickle = jsonpickle.encode(tuple_dict)
-    expect = {"(1, 2)": 3, "(4, 5)": {"(7, 8)": 9}}
-    actual = jsonpickle.decode(pickle)
-    assert expect == actual
-    tuple_dict = {(1, 2): [1, 2]}
-    pickle = jsonpickle.encode(tuple_dict)
-    actual = jsonpickle.decode(pickle)
-    assert actual["(1, 2)"] == [1, 2]
-
-
 def test_tuple_dict_keys_with_keys_enabled():
     """Test that we handle dictionaries with tuples as keys."""
     tuple_dict = {(1, 2): 3, (4, 5): {(7, 8): 9}}
@@ -946,15 +932,6 @@ def test_tuple_dict_keys_with_keys_enabled():
     pickle = jsonpickle.encode(tuple_dict, keys=True)
     actual = jsonpickle.decode(pickle, keys=True)
     assert actual[(1, 2)] == [1, 2]
-
-
-def test_None_dict_key_default():
-    """None is stringified by default when used as a dict key"""
-    expect = {"null": None}
-    obj = {None: None}
-    pickle = jsonpickle.encode(obj)
-    actual = jsonpickle.decode(pickle)
-    assert expect == actual
 
 
 def test_None_dict_key_with_keys_enabled():
@@ -971,15 +948,10 @@ def test_object_dict_keys():
     thing = Thing("random")
     pickle = jsonpickle.encode({thing: True})
     actual = jsonpickle.decode(pickle)
-    assert actual == {'Thing("random")': True}
-
-
-def test_int_dict_keys_defaults():
-    """Int keys are stringified by default"""
-    int_dict = {1000: [1, 2]}
-    pickle = jsonpickle.encode(int_dict)
-    actual = jsonpickle.decode(pickle)
-    assert actual["1000"] == [1, 2]
+    (key,) = actual
+    assert isinstance(key, Thing)
+    assert key.name == "random"
+    assert actual[key] is True
 
 
 def test_int_dict_keys_with_keys_enabled():
@@ -1306,11 +1278,6 @@ def test_listlike():
     ll.internal_list.append(1)
     roundtrip_ll = jsonpickle.decode(jsonpickle.encode(ll))
     assert len(roundtrip_ll.internal_list) == len(ll.internal_list)
-
-
-def test_v1_decode():
-    # TODO: Find a simple example that reproduces #364
-    assert True
 
 
 def test_depth_tracking(pickler):

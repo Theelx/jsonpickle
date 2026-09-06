@@ -854,7 +854,7 @@ def test_broken_repr_dict_key():
     """
     br = BrokenReprThing("test")
     obj = {br: True}
-    pickler = jsonpickle.pickler.Pickler()
+    pickler = jsonpickle.pickler.Pickler(keys=False)
     flattened = pickler.flatten(obj)
     assert '<BrokenReprThing "test">' in flattened
     assert flattened['<BrokenReprThing "test">']
@@ -962,15 +962,6 @@ def test_namedtuple_roundtrip():
     assert old_nt[0] == new_nt[0]
     assert old_nt[1] == new_nt[1]
     assert old_nt[2] == new_nt[2]
-
-
-def test_counter_roundtrip():
-    counter = collections.Counter({1: 2})
-    encoded = jsonpickle.encode(counter)
-    decoded = jsonpickle.decode(encoded)
-    assert type(decoded) is collections.Counter
-    # the integer key becomes a string when keys=False
-    assert decoded.get("1") == 2
 
 
 def test_counter_roundtrip_with_keys():
