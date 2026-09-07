@@ -10,25 +10,22 @@ import sys
 import types
 import warnings
 from collections.abc import Callable, Iterable, Sequence
-from itertools import chain, islice
+from itertools import chain
 from typing import Any
 
 from . import handlers, tags, util
-from .backend import JSONBackend, json
+from .backend import json
 
 
 def encode(
     value: Any,
     unpicklable: bool = True,
     make_refs: bool = True,
-    keys: bool = False,
+    keys: bool = True,
     max_depth: int | None = None,
     reset: bool = True,
-    backend: JSONBackend | None = None,
     warn: bool = False,
     context: "Pickler | None" = None,
-    max_iter: int | None = None,
-    numeric_keys: bool = False,
     use_base85: bool = False,
     fail_safe: Callable[[Exception], Any] | None = None,
     indent: int | None = None,
@@ -59,10 +56,9 @@ def encode(
         encode()/decode(), but the resulting JSON stream will be conceptually
         simpler.  jsonpickle detects cyclical objects and will break the cycle
         by calling repr() instead of recursing when make_refs is set False.
-    :param keys: If set to True then jsonpickle will encode non-string
-        dictionary keys instead of coercing them into strings via `repr()`.
-        This is typically what you want if you need to support Integer or
-        objects as dictionary keys.
+    :param keys: If set to True, the default, then jsonpickle will encode
+        non-string dictionary keys instead of coercing them into strings via
+        `repr()`.
     :param max_depth: If set to a non-negative integer then jsonpickle will
         not recurse deeper than 'max_depth' steps into the object.  Anything
         deeper than 'max_depth' is represented using a Python repr() of the
@@ -72,8 +68,6 @@ def encode(
         in order to retain object references during pickling.
         This flag is not typically used outside of a custom handler or
         `__getstate__` implementation.
-    :param backend: If set to an instance of jsonpickle.backend.JSONBackend,
-        jsonpickle will use that backend for serialization.
     :param warn: If set to True then jsonpickle will warn when it
         returns None for an object which it cannot pickle
         (e.g. file descriptors).
@@ -82,14 +76,6 @@ def encode(
         of creating a new instance. The `context` represents the currently
         active Pickler and Unpickler objects when custom handlers are
         invoked by jsonpickle.
-    :param max_iter: If set to a non-negative integer then jsonpickle will
-        consume at most `max_iter` items when pickling iterators.
-    :param numeric_keys: Only use this option if the backend supports integer
-        dict keys natively.  This flag tells jsonpickle to leave numeric keys
-        as-is rather than conforming them to json-friendly strings.
-        Using ``keys=True`` is the typical solution for integer keys, so only
-        use this if you have a specific use case where you want to allow the
-        backend to handle serialization of numeric dict keys.
     :param use_base85:
         If possible, use base85 to encode binary data. Base85 bloats binary data
         by 1/4 as opposed to base64, which expands it by 1/3. This argument is
@@ -138,16 +124,12 @@ def encode(
 
     """
 
-    backend = backend or json
     context = context or Pickler(
         unpicklable=unpicklable,
         make_refs=make_refs,
         keys=keys,
-        backend=backend,
         max_depth=max_depth,
         warn=warn,
-        max_iter=max_iter,
-        numeric_keys=numeric_keys,
         use_base85=use_base85,
         fail_safe=fail_safe,
         include_properties=include_properties,
@@ -157,7 +139,7 @@ def encode(
     )
     if handler_context is not None:
         context.handler_context = handler_context
-    return backend.encode(
+    return json.encode(
         context.flatten(value, reset=reset), indent=indent, separators=separators
     )
 
@@ -196,11 +178,8 @@ class Pickler:
         unpicklable: bool = True,
         make_refs: bool = True,
         max_depth: int | None = None,
-        backend: JSONBackend | None = None,
-        keys: bool = False,
+        keys: bool = True,
         warn: bool = False,
-        max_iter: int | None = None,
-        numeric_keys: bool = False,
         use_base85: bool = False,
         fail_safe: Callable[[Exception], Any] | None = None,
         include_properties: bool = False,
@@ -210,10 +189,9 @@ class Pickler:
     ) -> None:
         self.unpicklable = unpicklable
         self.make_refs = make_refs
-        self.backend = backend or json
+        self.backend = json
         self.keys = keys
         self.warn = warn
-        self.numeric_keys = numeric_keys
         self.use_base85 = use_base85
         # The current recursion depth
         self._depth = -1
@@ -223,8 +201,6 @@ class Pickler:
         self._objs = {}
         # Avoids garbage collection
         self._seen = []
-        # maximum amount of items to take from a pickled iterator
-        self._max_iter = max_iter
         # A cache of objects that have already been flattened.
         self._flattened = {}
         # Used for util._is_readonly, see +483
@@ -466,9 +442,7 @@ class Pickler:
         if k is None:
             k = "null"  # for compatibility with common json encoders
 
-        if self.numeric_keys and isinstance(k, (int, float)):
-            pass
-        elif not isinstance(k, str):
+        if not isinstance(k, str):
             try:
                 k = repr(k)
             except Exception:  # ruff: ignore[BLE001]
@@ -730,7 +704,7 @@ class Pickler:
 
         if util._is_iterator(obj):
             # force list in python 3
-            data[tags.ITERATOR] = list(map(self._flatten, islice(obj, self._max_iter)))
+            data[tags.ITERATOR] = list(map(self._flatten, obj))
             return data
 
         if has_dict:
@@ -799,7 +773,6 @@ class Pickler:
             reset=False,
             keys=True,
             context=self,
-            backend=self.backend,
             make_refs=self.make_refs,
         )
 
@@ -836,9 +809,7 @@ class Pickler:
             if k is None:
                 k = "null"  # for compatibility with common json encoders
 
-            if self.numeric_keys and isinstance(k, (int, float)):
-                pass
-            elif not isinstance(k, str):
+            if not isinstance(k, str):
                 try:
                     k = repr(k)
                 except Exception:  # ruff: ignore[BLE001]

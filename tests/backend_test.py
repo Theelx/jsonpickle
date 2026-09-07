@@ -71,10 +71,9 @@ class BackendBase(SkippableTest):
     def test_None_dict_key(self):
         """Ensure that backends produce the same result for None dict keys"""
         data = {None: None}
-        expect = {"null": None}
         pickle = jsonpickle.encode(data)
         actual = jsonpickle.decode(pickle)
-        assert expect == actual
+        assert data == actual
 
     def test_encode_with_indent_and_separators(self):
         obj = {
@@ -247,8 +246,8 @@ def test_decimal_passthrough_handler(simplejson_use_decimal, decimal_passthrough
         ([shared, shared], "[2.1, 2.1]"),
         ({"a": decimal.Decimal("2.1")}, '{"a": 2.1}'),
         ({"a": {"b": [decimal.Decimal("2.1")]}}, '{"a": {"b": [2.1]}}'),
-        # dict keys are still coerced via repr(), the handler only affects values
-        ({decimal.Decimal("2.1"): "a"}, '{"Decimal(\'2.1\')": "a"}'),
+        # keys are pickled through the json:// escape, so they pass through too
+        ({decimal.Decimal("2.1"): "a"}, '{"json://2.1": "a"}'),
         (DecimalSubclass("2.1"), "2.1"),
     ]
     for value, expect in values:

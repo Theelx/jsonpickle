@@ -10,7 +10,7 @@ from collections.abc import Callable, Iterator, Sequence
 from typing import Any, TypeAlias
 
 from . import errors, handlers, tags, util
-from .backend import JSONBackend, json
+from .backend import json
 
 # class names to class objects (or sequence of classes)
 ClassesType: TypeAlias = type | dict[str, type] | Sequence[type] | None
@@ -20,22 +20,17 @@ MissingHandler: TypeAlias = str | Callable[[str], Any]
 
 def decode(
     string: str,
-    backend: JSONBackend | None = None,
     # we get a lot of errors when typing with TypeVar
     context: "Unpickler | None" = None,
-    keys: bool = False,
+    keys: bool = True,
     reset: bool = True,
     safe: bool = True,
     classes: ClassesType | None = None,
-    v1_decode: bool = False,
     on_missing: MissingHandler = "ignore",
     handle_readonly: bool = False,
     handler_context: Any = None,
 ) -> Any:
     """Convert a JSON string into a Python object.
-
-    :param backend: If set to an instance of jsonpickle.backend.JSONBackend, jsonpickle
-        will use that backend for deserialization.
 
     :param context: Supply a pre-built Pickler or Unpickler object to the
         `jsonpickle.encode` and `jsonpickle.decode` machinery instead
@@ -43,8 +38,9 @@ def decode(
         active Pickler and Unpickler objects when custom handlers are
         invoked by jsonpickle.
 
-    :param keys: If set to True then jsonpickle will decode non-string dictionary keys
-        into python objects via the jsonpickle protocol.
+    :param keys: If set to True, the default, then jsonpickle will decode
+        non-string dictionary keys into python objects via the jsonpickle
+        protocol. Otherwise, jsonpickle will decode those keys as strings.
 
     :param reset: Custom pickle handlers that use the `Pickler.flatten` method or
         `jsonpickle.encode` function must call `encode` with `reset=False`
@@ -69,11 +65,6 @@ def decode(
         available through the global module import scope, and the dict method can
         be used to deserialize encoded objects into a new class. An example of using
         this argument can be found in examples/changing_class_path.py on GitHub.
-
-    :param v1_decode: If set to True it enables you to decode objects serialized in
-        jsonpickle v1. Please do not attempt to re-encode the objects in the v1 format!
-        Version 2's format fixes issue #255, and allows dictionary identity to be
-        preserved through an encode/decode cycle.
 
     :param on_missing: If set to 'error', it will raise an error if the class it's
         decoding is not found. If set to 'warn', it will warn you in said case.
@@ -103,20 +94,17 @@ def decode(
             "Unpickler.on_missing must be a string or a function! It will be ignored!"
         )
 
-    backend = backend or json
     is_ephemeral_context = context is None
     context = context or Unpickler(
         keys=keys,
-        backend=backend,
         safe=safe,
-        v1_decode=v1_decode,
         on_missing=on_missing,
         handle_readonly=handle_readonly,
         handler_context=handler_context,
     )
     if handler_context is not None:
         context.handler_context = handler_context
-    data = backend.decode(string)
+    data = json.decode(string)
     result = context.restore(data, reset=reset, classes=classes)
     if is_ephemeral_context:
         # Avoid holding onto references to external objects, which can
@@ -331,18 +319,15 @@ def _passthrough(value: Any) -> Any:
 class Unpickler:
     def __init__(
         self,
-        backend: JSONBackend | None = None,
-        keys: bool = False,
+        keys: bool = True,
         safe: bool = True,
-        v1_decode: bool = False,
         on_missing: MissingHandler = "ignore",
         handle_readonly: bool = False,
         handler_context: Any = None,
     ) -> None:
-        self.backend = backend or json
+        self.backend = json
         self.keys = keys
         self.safe = safe
-        self.v1_decode = v1_decode
         self.on_missing = on_missing
         self.handle_readonly = handle_readonly
         # Custom context passed through to custom handlers, see #452
@@ -652,7 +637,6 @@ class Unpickler:
         if _is_json_key(key):
             key = decode(
                 key[len(tags.JSON_KEY) :],
-                backend=self.backend,
                 context=self,
                 keys=True,
                 reset=False,
@@ -901,8 +885,7 @@ class Unpickler:
 
     def _restore_dict(self, obj: dict[str, Any]) -> dict[str, Any]:
         data = {}
-        if not self.v1_decode:
-            self._mkref(data)
+        self._mkref(data)
 
         # If we are decoding dicts that can have non-string keys then we
         # need to do a two-phase decode where the non-string keys are
@@ -918,7 +901,9 @@ class Unpickler:
                 else:
                     str_k = k
                 self._namestack.append(str_k)
-                data[k] = self._restore(v)
+                data[k] = result = self._restore(v)
+                if isinstance(result, _Proxy):
+                    self._proxies.append((data, k, result, _obj_setvalue))
 
                 self._namestack.pop()
 
